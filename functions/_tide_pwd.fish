@@ -7,6 +7,24 @@ set -l home_icon $tide_pwd_icon_home' '
 set -l pwd_icon $tide_pwd_icon' '
 
 eval "function _tide_pwd
+    set -l path (shorten_path \$PWD)
+    set -l icon \"$pwd_icon\"
+    if set -l home_matches (string match -e -r \"^~.*\" \"\$path\")
+        set -f icon \"$home_icon\"
+    end
+    test -w . || set -f icon \"$unwritable_icon\"
+    set -l split_path (string split / \$path)
+    set split_path[-1] \"$color_anchors\$split_path[-1]$reset_to_color_dirs\"
+    if test (count \$split_path) -gt 1; and set -l mapping_matches (string match -e -r \"^@.*\" \"\$split_path[1]\")
+	set split_path[1] \"$color_truncated\$split_path[1]$reset_to_color_dirs\"
+    end
+    string join / -- \$split_path | read -l path
+    set -l displayed_pwd \"$reset_to_color_dirs\$icon\$path$reset_to_color_dirs\"
+    string length -V \"\$displayed_pwd\" | read -g _tide_pwd_len
+    echo \$displayed_pwd
+end"
+
+eval "function _tide_pwd_old
     if set -l split_pwd (string replace -r '^$HOME' '~' -- \$PWD | string split /)
         test -w . && set -f split_output \"$pwd_icon\$split_pwd[1]\" \$split_pwd[2..] ||
             set -f split_output \"$unwritable_icon\$split_pwd[1]\" \$split_pwd[2..]
